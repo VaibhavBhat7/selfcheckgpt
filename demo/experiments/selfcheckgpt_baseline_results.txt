@@ -1,0 +1,23 @@
+SelfCheckGPT-NLI Baseline Reproduction
+
+Date: 21-Jun-2026
+Dataset: potsawee/wiki_bio_gpt3_hallucination
+Model: SelfCheckGPT-NLI (DeBERTa-v3-large)
+
+Results:
+
+1. Detecting False Sentences
+AUC-PR = 92.50
+
+2. Detecting Factual Sentences
+AUC-PR = 45.16
+
+3. Detecting Non-Factual Sentences
+AUC-PR = 66.09
+
+Hardware:
+GPU: NVIDIA GeForce RTX 2050 (4GB)
+Execution Time: ~1 hour 3 minutes
+
+Notes:
+Successfully reproduced the official SelfCheckGPT-NLI WikiBio benchmark.
