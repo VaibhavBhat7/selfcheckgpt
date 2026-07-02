@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 class Transition(Enum):
@@ -30,6 +30,19 @@ class Transition(Enum):
     SUPPORT = "support"
     ABSENT = "absent"
     CONTRADICT = "contradict"
+
+
+class MatchTier(Enum):
+    """
+    Which stage of the tiered belief matcher produced a
+    transition decision.
+    """
+
+    EXACT = "exact"
+    INVERSE = "inverse"
+    SEMANTIC = "semantic"
+    NLI = "nli"
+    NONE = "none"
 
 @dataclass
 class ExtractedClaim:
@@ -114,12 +127,24 @@ class TransitionResult:
 
     matched_belief: Optional[Belief] = None
 
+    tier: MatchTier = MatchTier.NONE
+
+    match_score: float = 0.0
+
 
 @dataclass(slots=True)
 class BeliefProfile:
     """
     Transition statistics for one belief across all sampled
     passages.
+
+    ``support``/``absent``/``contradict`` are raw transition
+    counts (used by the baseline scorer). The ``*_weight``
+    fields are the same transitions summed by match-tier
+    confidence (``TransitionResult.match_score``), used by
+    the Bayesian and graph scorers so a low-confidence
+    semantic match counts as weaker evidence than an exact
+    match.
 
     Example
     -------
@@ -136,6 +161,26 @@ class BeliefProfile:
 
     contradict: int = 0
 
+    support_weight: float = 0.0
+
+    absent_weight: float = 0.0
+
+    contradict_weight: float = 0.0
+
+    posterior_mean: Optional[float] = None
+
+    credible_interval: Optional[Tuple[float, float]] = None
+
+    graph_score: Optional[float] = None
+
+    # Generic per-belief scalar in [-1, 1], set by whichever scorer
+    # produced this profile (baseline's (S-C)/Total, Bayesian's
+    # 2*posterior_mean-1, or graph's propagated score). Lets callers
+    # re-aggregate belief -> sentence with something other than the
+    # scorer's default mean (e.g. min) without caring which scorer
+    # was used - see scoring/base.py::aggregate.
+    score: Optional[float] = None
+
 
 @dataclass(slots=True)
 class BeliefStabilityResult:
@@ -149,3 +194,5 @@ class BeliefStabilityResult:
     stability_score: float
 
     profiles: List[BeliefProfile] = field(default_factory=list)
+
+    method: str = "baseline"

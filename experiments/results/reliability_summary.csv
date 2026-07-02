@@ -1,0 +1,6 @@
+arm,agg_mean,agg_std,sub_recall_mean,sub_recall_std,n_folds
+selfcheckgpt,92.62,0.92,67.99,3.61,5
+bs_baseline,92.4,1.18,32.72,8.33,5
+bs_bayesian,92.34,1.12,33.37,6.01,5
+bs_graph,92.47,1.11,35.34,5.74,5
+cascade,92.68,0.95,87.66,4.46,5

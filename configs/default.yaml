@@ -1,0 +1,37 @@
+# Default Belief Stability configuration.
+# See belief_stability/config.py::BeliefStabilityConfig for field docs.
+
+# Extractor
+extractor_batch_size: 16
+num_beams: 1
+precision: fp16
+max_input_length: 512
+max_output_length: 512
+
+# Offline cache builder
+flush_every: 10
+
+# Extraction pre-processing
+use_pronoun_resolution: true
+
+# Canonicalization (ablation toggles)
+use_document_entity_normalization: true
+use_inverse_matching: true
+
+# Matcher
+use_semantic_matching: true
+match_similarity_threshold: 0.82
+use_nli_arbitration: false
+nli_ambiguous_low: 0.55
+nli_ambiguous_high: 0.82
+
+# Scoring
+scoring_method: bayesian
+absent_discount: 0.5
+graph_alpha: 0.3
+
+# Sentence aggregation
+sentence_aggregation: min
+
+# Reliability Cascade (reliability/cascade.py)
+cascade_blend_weight: 0.5

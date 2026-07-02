@@ -63,13 +63,22 @@ class BeliefPersistence:
 
             profile = profiles[belief_id]
 
+            # match_score defaults to 0.0 for ABSENT (no candidate was
+            # found, so there is no match confidence to weight by) and
+            # is otherwise the tier's confidence (1.0 for EXACT, cosine
+            # similarity for SEMANTIC, 1-P(contradict) for NLI).
+            weight = result.match_score
+
             if result.transition == Transition.SUPPORT:
                 profile.support += 1
+                profile.support_weight += weight
 
             elif result.transition == Transition.ABSENT:
                 profile.absent += 1
+                profile.absent_weight += 1.0
 
             elif result.transition == Transition.CONTRADICT:
                 profile.contradict += 1
+                profile.contradict_weight += weight
 
         return list(profiles.values())

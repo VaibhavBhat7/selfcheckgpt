@@ -6,15 +6,13 @@ Author      : Sujay Bhat
 Project     : Hybrid Hallucination Detection Framework
 Component   : Belief Scoring
 
-File        : scorer.py
+File        : baseline_scorer.py
 
 Description
 -----------
-Computes the final Belief Stability Score from belief
-persistence profiles.
+Version 1 formula, kept unchanged as the control arm for
+the baseline vs. Bayesian vs. graph ablation.
 
-Version 1 Formula
------------------
 BeliefScore =
 
 (Support - Contradict) /
@@ -37,12 +35,15 @@ from belief_stability.models import (
     BeliefProfile,
     BeliefStabilityResult,
 )
+from .base import BaseBeliefScorer
 
 
-class BeliefScorer:
+class BaselineScorer(BaseBeliefScorer):
     """
-    Computes the final Belief Stability Score.
+    Computes the Version-1 Belief Stability Score.
     """
+
+    method_name = "baseline"
 
     @staticmethod
     def _belief_score(profile: BeliefProfile) -> float:
@@ -82,16 +83,27 @@ class BeliefScorer:
             return BeliefStabilityResult(
                 stability_score=0.0,
                 profiles=[],
+                method=self.method_name,
             )
 
-        scores = [
-            self._belief_score(profile)
-            for profile in profiles
-        ]
+        scores = []
+
+        for profile in profiles:
+
+            belief_score = self._belief_score(profile)
+
+            profile.score = belief_score
+
+            scores.append(belief_score)
 
         stability_score = sum(scores) / len(scores)
 
         return BeliefStabilityResult(
             stability_score=stability_score,
             profiles=profiles,
+            method=self.method_name,
         )
+
+
+# Backward-compatible alias (Version 1 name).
+BeliefScorer = BaselineScorer

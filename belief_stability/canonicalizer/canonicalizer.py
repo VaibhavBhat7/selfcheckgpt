@@ -2,25 +2,18 @@
 ---------------------------------------------------------
 Belief Stability Module
 
-Author      : Sujay Bhat
-Project     : Hybrid Hallucination Detection Framework
-Component   : Belief Canonicalizer
+Canonicalizer
 
-File        : canonicalizer.py
-
-Description
------------
-Main orchestration pipeline for canonicalizing extracted
-claims into canonical Belief objects.
-
-This class coordinates all canonicalization components but
-contains no normalization logic itself.
+Main orchestration pipeline.
 ---------------------------------------------------------
 """
 
 from __future__ import annotations
 
-from belief_stability.models import Belief, ExtractedClaim
+from belief_stability.models import (
+    Belief,
+    ExtractedClaim,
+)
 
 from .attribute_mapper import AttributeMapper
 from .builder import BeliefBuilder
@@ -30,25 +23,6 @@ from .relation_mapper import RelationMapper
 
 
 class Canonicalizer:
-    """
-    Main canonicalization pipeline.
-
-    Pipeline
-    --------
-    ExtractedClaim
-            ↓
-    Preprocessing
-            ↓
-    Relation Mapping
-            ↓
-    Entity Mapping
-            ↓
-    Attribute Mapping
-            ↓
-    Belief Construction
-            ↓
-    Belief
-    """
 
     def __init__(
         self,
@@ -69,55 +43,18 @@ class Canonicalizer:
         self,
         claim: ExtractedClaim,
     ) -> Belief:
-        """
-        Convert an ExtractedClaim into a canonical Belief.
 
-        Parameters
-        ----------
-        claim : ExtractedClaim
-
-        Returns
-        -------
-        Belief
-            Canonical belief representation.
-        """
-
-        # --------------------------------------------
-        # Step 1 : Preprocessing
-        # --------------------------------------------
-
+        # Step 1
         claim = self.preprocessor.preprocess(claim)
 
-        # --------------------------------------------
-        # Step 2 : Relation Normalization
-        # --------------------------------------------
+        # Step 2
+        claim = self.relation_mapper.normalize(claim)
 
-        claim.relation = self.relation_mapper.normalize(
-            claim.relation
-        )
+        # Step 3
+        claim = self.entity_mapper.normalize(claim)
 
-        # --------------------------------------------
-        # Step 3 : Entity Normalization
-        # --------------------------------------------
+        # Step 4
+        claim = self.attribute_mapper.normalize(claim)
 
-        claim.subject = self.entity_mapper.normalize(
-            claim.subject
-        )
-
-        claim.object = self.entity_mapper.normalize(
-            claim.object
-        )
-
-        # --------------------------------------------
-        # Step 4 : Attribute Normalization
-        # --------------------------------------------
-
-        claim.attributes = self.attribute_mapper.normalize(
-            claim.attributes
-        )
-
-        # --------------------------------------------
-        # Step 5 : Build Canonical Belief
-        # --------------------------------------------
-
+        # Step 5
         return self.builder.build(claim)

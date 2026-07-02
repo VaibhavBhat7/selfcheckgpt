@@ -27,6 +27,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import DefaultDict, Dict, List, Tuple
 
+from belief_stability.constants import INVERSE_RELATION_PAIRS, SYMMETRIC_RELATIONS
 from belief_stability.models import Belief, PassageBeliefs
 
 
@@ -89,6 +90,58 @@ class BeliefLookup:
         key = (belief.subject, belief.relation)
 
         return index.get(key, [])
+
+    def lookup_inverse(
+        self,
+        belief: Belief,
+        index: Dict[Tuple[str, str], List[Belief]],
+    ) -> List[Belief]:
+        """
+        Retrieve candidates that assert the same fact as
+        ``belief`` but phrased with subject/object roles
+        swapped under an inverse or symmetric relation name
+        (e.g. (A, FOUNDED, B) <-> (B, FOUNDED_BY, A), or
+        (A, SPOUSE, B) <-> (B, SPOUSE, A)).
+
+        Looked up in the SAME index passed to ``lookup`` - no
+        separate index structure is needed, this is just a
+        differently-keyed lookup into it.
+
+        Parameters
+        ----------
+        belief : Belief
+            Original belief.
+
+        index : Dict[Tuple[str, str], List[Belief]]
+            Lookup index generated from a sampled passage.
+
+        Returns
+        -------
+        List[Belief]
+            Candidates that structurally round-trip back to
+            ``belief`` under its relation's inverse/symmetric
+            counterpart. Empty if the relation has no known
+            inverse/symmetric counterpart, or no candidate
+            round-trips.
+        """
+
+        if belief.relation in SYMMETRIC_RELATIONS:
+            inverse_relation = belief.relation
+        else:
+            inverse_relation = INVERSE_RELATION_PAIRS.get(belief.relation)
+
+        if inverse_relation is None:
+            return []
+
+        key = (belief.object, inverse_relation)
+
+        candidates = index.get(key, [])
+
+        return [
+            candidate
+            for candidate in candidates
+            if candidate.object == belief.subject
+        ]
 
     @staticmethod
     def contains(

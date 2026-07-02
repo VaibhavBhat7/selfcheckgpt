@@ -26,7 +26,10 @@ Belief Persistence
 Belief Stability Score
 
 This pipeline assumes claim extraction has already been
-performed (e.g., using REBEL).
+performed (e.g., using REBEL) - see belief_cache.py for the
+offline extraction/canonicalization stage. This class only
+ever does canonicalization + matching + persistence +
+scoring on beliefs it is given, so it never needs a GPU.
 ---------------------------------------------------------
 """
 
@@ -35,16 +38,19 @@ from __future__ import annotations
 from typing import List
 
 from belief_stability.canonicalizer import Canonicalizer
+from belief_stability.config import BeliefStabilityConfig
 from belief_stability.matcher import BeliefMatcher
 from belief_stability.models import (
+    Belief,
     ExtractedClaim,
     PassageBeliefs,
     TransitionResult,
     BeliefStabilityResult,
 )
 from belief_stability.scoring import (
+    BaseBeliefScorer,
     BeliefPersistence,
-    BeliefScorer,
+    build_scorer,
 )
 
 
@@ -58,13 +64,36 @@ class BeliefStabilityPipeline:
         canonicalizer: Canonicalizer | None = None,
         matcher: BeliefMatcher | None = None,
         persistence: BeliefPersistence | None = None,
-        scorer: BeliefScorer | None = None,
+        scorer: BaseBeliefScorer | None = None,
+        config: BeliefStabilityConfig | None = None,
+        semantic_matcher=None,
+        nli_arbitrator=None,
     ) -> None:
 
+        self.config = config or BeliefStabilityConfig()
+
         self.canonicalizer = canonicalizer or Canonicalizer()
-        self.matcher = matcher or BeliefMatcher()
+
         self.persistence = persistence or BeliefPersistence()
-        self.scorer = scorer or BeliefScorer()
+
+        self.matcher = matcher or BeliefMatcher(
+            semantic_matcher=(
+                semantic_matcher if self.config.use_semantic_matching else None
+            ),
+            nli_arbitrator=(
+                nli_arbitrator if self.config.use_nli_arbitration else None
+            ),
+            match_similarity_threshold=self.config.match_similarity_threshold,
+            nli_ambiguous_low=self.config.nli_ambiguous_low,
+            nli_ambiguous_high=self.config.nli_ambiguous_high,
+            use_inverse_matching=self.config.use_inverse_matching,
+        )
+
+        self.scorer = scorer or build_scorer(
+            method=self.config.scoring_method,
+            absent_discount=self.config.absent_discount,
+            graph_alpha=self.config.graph_alpha,
+        )
 
     # -----------------------------------------------------
     # Internal Helper
@@ -89,8 +118,19 @@ class BeliefStabilityPipeline:
             beliefs=beliefs,
         )
 
+    @staticmethod
+    def _wrap_beliefs(
+        passage_id: int,
+        beliefs: List[Belief],
+    ) -> PassageBeliefs:
+
+        return PassageBeliefs(
+            passage_id=passage_id,
+            beliefs=beliefs,
+        )
+
     # -----------------------------------------------------
-    # Main Pipeline
+    # Main Pipeline (raw claims -> canonicalize -> score)
     # -----------------------------------------------------
 
     def run(
@@ -99,7 +139,8 @@ class BeliefStabilityPipeline:
         sampled_claims: List[List[ExtractedClaim]],
     ) -> BeliefStabilityResult:
         """
-        Execute the complete Belief Stability pipeline.
+        Execute the complete Belief Stability pipeline
+        starting from raw (uncanonicalized) claims.
 
         Parameters
         ----------
@@ -114,18 +155,10 @@ class BeliefStabilityPipeline:
         BeliefStabilityResult
         """
 
-        # ---------------------------------------------
-        # Canonicalize Original Passage
-        # ---------------------------------------------
-
         original_beliefs = self._canonicalize_passage(
             passage_id=0,
             claims=original_claims,
         )
-
-        # ---------------------------------------------
-        # Canonicalize Sampled Passages
-        # ---------------------------------------------
 
         sampled_passages = [
 
@@ -137,6 +170,42 @@ class BeliefStabilityPipeline:
             for index, claims in enumerate(sampled_claims)
 
         ]
+
+        return self._run_on_beliefs(original_beliefs, sampled_passages)
+
+    # -----------------------------------------------------
+    # Cached Pipeline (already-canonicalized beliefs -> score)
+    # -----------------------------------------------------
+
+    def run_from_beliefs(
+        self,
+        original_beliefs: List[Belief],
+        sampled_beliefs: List[List[Belief]],
+    ) -> BeliefStabilityResult:
+        """
+        Execute the pipeline starting from already
+        canonicalized beliefs (e.g. loaded from a
+        BeliefCache). Skips claim extraction and
+        canonicalization entirely - this is the GPU-free
+        online path.
+        """
+
+        original_passage = self._wrap_beliefs(0, original_beliefs)
+
+        sampled_passages = [
+            self._wrap_beliefs(index + 1, beliefs)
+            for index, beliefs in enumerate(sampled_beliefs)
+        ]
+
+        return self._run_on_beliefs(original_passage, sampled_passages)
+
+    # -----------------------------------------------------
+
+    def _run_on_beliefs(
+        self,
+        original_beliefs: PassageBeliefs,
+        sampled_passages: List[PassageBeliefs],
+    ) -> BeliefStabilityResult:
 
         # ---------------------------------------------
         # Belief Matching

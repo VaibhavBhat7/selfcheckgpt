@@ -49,10 +49,32 @@ class BeliefMatcher:
         self,
         lookup: BeliefLookup | None = None,
         classifier: TransitionClassifier | None = None,
+        semantic_matcher=None,
+        nli_arbitrator=None,
+        match_similarity_threshold: float = 0.82,
+        nli_ambiguous_low: float = 0.55,
+        nli_ambiguous_high: float = 0.82,
+        use_inverse_matching: bool = True,
     ) -> None:
 
         self.lookup = lookup or BeliefLookup()
-        self.classifier = classifier or TransitionClassifier()
+
+        self.use_inverse_matching = use_inverse_matching
+
+        self.classifier = classifier or TransitionClassifier(
+            semantic_matcher=semantic_matcher,
+            nli_arbitrator=nli_arbitrator,
+            match_similarity_threshold=match_similarity_threshold,
+            nli_ambiguous_low=nli_ambiguous_low,
+            nli_ambiguous_high=nli_ambiguous_high,
+        )
+
+    def _inverse_candidates(self, belief: Belief, index) -> List[Belief]:
+
+        if not self.use_inverse_matching:
+            return []
+
+        return self.lookup.lookup_inverse(belief, index)
 
     def match(
         self,
@@ -82,9 +104,12 @@ class BeliefMatcher:
             index,
         )
 
+        inverse_candidates = self._inverse_candidates(original_belief, index)
+
         return self.classifier.classify(
             original_belief,
             candidate_beliefs,
+            inverse_candidates=inverse_candidates,
         )
 
     def match_all(
@@ -118,9 +143,12 @@ class BeliefMatcher:
                 index,
             )
 
+            inverse_candidates = self._inverse_candidates(belief, index)
+
             result = self.classifier.classify(
                 belief,
                 candidates,
+                inverse_candidates=inverse_candidates,
             )
 
             results.append(result)

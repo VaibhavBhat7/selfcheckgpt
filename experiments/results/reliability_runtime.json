@@ -1,0 +1,12 @@
+{
+  "feature_build_seconds": 0.41,
+  "cv_seconds": 26.55,
+  "total_seconds": 34.0,
+  "num_documents": 238,
+  "num_sentence_rows": 1908,
+  "outer_k": 5,
+  "inner_k": 3,
+  "belief_cache_bytes": 6783463,
+  "selfcheck_cache_bytes": 18912,
+  "note": "belief_cache/selfcheck_cache build durations are logged by build_belief_cache.py / build_selfcheck_cache.py themselves at build time, not reproduced here - this file only times this script."
+}

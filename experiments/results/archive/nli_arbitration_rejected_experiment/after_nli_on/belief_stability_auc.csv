@@ -1,0 +1,4 @@
+method,nonfact_auc_pr,nonfact_hard_auc_pr,factual_auc_pr,random_baseline_nonfact
+baseline,83.21,30.02,51.54,72.96
+bayesian,82.03,35.73,49.56,72.96
+graph,82.04,38.71,49.57,72.96

@@ -1,0 +1,12 @@
+metric,v1,v2,delta
+num_docs,238,238,0
+avg_original_beliefs_per_doc,11.4958,12.9538,1.458
+support_rate,0.0677,0.1298,0.0621
+absent_rate,0.8921,0.7597,-0.1324
+contradict_rate,0.0402,0.1105,0.0703
+tier_exact_rate,0.094,0.2181,0.1241
+tier_inverse_rate,0.0,0.0001,0.0001
+tier_semantic_rate,0.0139,0.022,0.0082
+tier_nli_rate,0.0,0.0,0.0
+tier_none_rate,0.8921,0.7597,-0.1324
+avg_graph_edges_per_doc,10.895,35.0336,24.1387

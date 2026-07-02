@@ -3,3 +3,26 @@ selfcheckgpt.egg-info
 examples/
 dist/
 *.ipynb_checkpoints/
+# Environment variables
+.env
+.env.*
+!.env.example
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+selfcheck_env/
+demo/experiments/selfcheck_env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Belief Stability: large regenerable/frozen binary caches - keep locally,
+# do not push. Regenerate via experiments/build_belief_cache.py,
+# experiments/canonicalize_cache.py, experiments/build_selfcheck_cache.py.
+# CSV/JSON/PNG result artifacts are NOT excluded - only the caches.
+experiments/results/*.pkl
+experiments/results/**/*.pkl
